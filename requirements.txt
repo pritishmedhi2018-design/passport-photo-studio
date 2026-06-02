@@ -1,8 +1,8 @@
 streamlit
-pillow
-rembg
-onnxruntime
-numpy
 pandas
+Pillow
 streamlit-cropper
-opencv-python
+rembg
+opencv-python-headless
+numpy
+onnxruntime
