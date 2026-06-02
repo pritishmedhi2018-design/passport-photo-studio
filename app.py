@@ -1,9 +1,13 @@
+import os
 import streamlit as st
 from streamlit_cropper import st_cropper
 
 from PIL import Image
 import io
 import pandas as pd
+
+# For Render.com deployment
+PORT = int(os.environ.get("PORT", 8501))
 
 from modules.bg_removal import remove_background
 from modules.layout_generator import (
@@ -594,3 +598,10 @@ st.caption(
     • PNG & PDF Download
     """
 )
+
+# =======================
+# For Render Deployment
+# =======================
+if __name__ == "__main__":
+    import streamlit as st
+    st._is_running = True
