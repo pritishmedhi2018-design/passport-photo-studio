@@ -1,0 +1,8 @@
+streamlit
+pillow
+rembg
+onnxruntime
+numpy
+pandas
+streamlit-cropper
+opencv-python
