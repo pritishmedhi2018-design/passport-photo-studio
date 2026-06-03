@@ -180,3 +180,14 @@ def get_today_orders():
     conn.close()
 
     return count
+
+def delete_order(order_id):
+    """Delete a specific order by ID"""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    cursor.execute("DELETE FROM orders WHERE id = ?", (order_id,))
+    
+    conn.commit()
+    conn.close()
+    return cursor.rowcount > 0  # Return True if deleted
