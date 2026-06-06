@@ -70,7 +70,7 @@ st.subheader("Sales Records")
 
 st.dataframe(
     df,
-    use_container_width=True,
+    width="stretch",
     hide_index=True
 )
 
@@ -95,7 +95,7 @@ photo_summary = (
 
 st.dataframe(
     photo_summary,
-    use_container_width=True,
+    width="stretch",
     hide_index=True
 )
 
@@ -132,5 +132,23 @@ st.download_button(
     csv,
     "sales_report.csv",
     "text/csv",
-    use_container_width=True
+    width="stretch"
+)
+
+st.subheader("Recent Sales")
+
+df["date_time"] = pd.to_datetime(
+    df["date_time"],
+    format="%d-%m-%Y %I:%M:%S %p"
+)
+
+daily_revenue = (
+    df.groupby(
+        df["date_time"].dt.date
+    )["amount"]
+    .sum()
+)
+
+st.line_chart(
+    daily_revenue
 )
