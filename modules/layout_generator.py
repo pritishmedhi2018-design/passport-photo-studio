@@ -1,170 +1,241 @@
 from PIL import Image, ImageDraw, ImageOps
 
+# ==========================================
+# A4 SETTINGS (300 DPI)
+# ==========================================
 
-def generate_layout(
-    photos,
-    copies,
-    photos_per_row=6,
-    photo_type="Passport"
+A4_WIDTH = 2480
+A4_HEIGHT = 3508
+
+LEFT_MARGIN = 140
+RIGHT_MARGIN = 140
+
+TOP_MARGIN = 140
+BOTTOM_MARGIN = 140
+
+GAP_X = 25
+GAP_Y = 25
+
+BORDER = 2
+
+# ==========================================
+# MM TO PIXELS
+# ==========================================
+
+def mm_to_pixels(mm, dpi=300):
+
+    inches = mm / 25.4
+
+    return int(inches * dpi)
+
+
+# ==========================================
+# CREATE SINGLE PHOTO TILE
+# ==========================================
+
+def create_photo_tile(
+        image,
+        width_mm,
+        height_mm
 ):
 
-    # A4 @ 300 DPI
-    A4_WIDTH = 2480
-    A4_HEIGHT = 3508
+    width_px = mm_to_pixels(width_mm)
+    height_px = mm_to_pixels(height_mm)
 
-    # Margins
-    LEFT_MARGIN = 120
-    RIGHT_MARGIN = 120
-    TOP_MARGIN = 120
-    BOTTOM_MARGIN = 120
+    image = image.convert("RGB")
 
-    # Photo Size
-    if photo_type == "Passport":
+    image = ImageOps.fit(
+        image,
+        (width_px, height_px),
+        Image.LANCZOS
+    )
 
-        PHOTO_W = 413      # 35 mm
-        PHOTO_H = 531      # 45 mm
+    return image
 
-    else:
 
-        PHOTO_W = 295      # 25 mm
-        PHOTO_H = 413      # 35 mm
+# ==========================================
+# GENERATE LAYOUT
+# ==========================================
 
-    # Layout Settings
-    GAP_X = 25
-    GAP_Y = 25
-
-    BORDER = 1
+def generate_layout(photo_data):
 
     canvas = Image.new(
         "RGB",
-        (A4_WIDTH, A4_HEIGHT),
+        (
+            A4_WIDTH,
+            A4_HEIGHT
+        ),
         "white"
     )
 
     draw = ImageDraw.Draw(canvas)
 
-    photo_list = []
-
-    # -------------------------
-    # Generate Copies
-    # -------------------------
-
-    for photo, qty in zip(
-        photos,
-        copies
-    ):
-
-        photo = photo.convert(
-            "RGB"
-        )
-
-        # Fill complete photo area
-        photo = ImageOps.fit(
-    photo,
-    (PHOTO_W, PHOTO_H),
-    Image.LANCZOS
-)
-
-        for _ in range(
-            int(qty)
-        ):
-
-            photo_list.append(
-                photo.copy()
-            )
-
-    # -------------------------
-    # Layout Width
-    # -------------------------
-
-    layout_width = (
-        photos_per_row * PHOTO_W
-    ) + (
-        (photos_per_row - 1)
-        * GAP_X
+    usable_width = (
+        A4_WIDTH
+        - LEFT_MARGIN
+        - RIGHT_MARGIN
     )
 
-    start_x = (
-        A4_WIDTH
-        - layout_width
-    ) // 2
+    usable_height = (
+        A4_HEIGHT
+        - TOP_MARGIN
+        - BOTTOM_MARGIN
+    )
 
-    if start_x < LEFT_MARGIN:
+    x = LEFT_MARGIN
+    y = TOP_MARGIN + 40
 
-        start_x = LEFT_MARGIN
+    row_height = 0
 
-    x = start_x
-    y = TOP_MARGIN
+    total_placed = 0
 
-    current_col = 0
+    overflow = False
 
-    # -------------------------
-    # Place Photos
-    # -------------------------
+    # -----------------------------------
+    # LOOP THROUGH ALL PHOTOS
+    # -----------------------------------
 
-    for photo in photo_list:
+    for item in photo_data:
 
-        if (
-            y + PHOTO_H
-            > A4_HEIGHT
-            - BOTTOM_MARGIN
-        ):
+        image = item["image"]
+
+        width_mm = item["width_mm"]
+        height_mm = item["height_mm"]
+
+        copies = item["copies"]
+
+        tile = create_photo_tile(
+            image,
+            width_mm,
+            height_mm
+        )
+
+        photo_w, photo_h = tile.size
+
+        # -----------------------------------
+        # PLACE COPIES
+        # -----------------------------------
+
+        for _ in range(copies):
+
+            # Next row
+            if x + photo_w > A4_WIDTH - RIGHT_MARGIN:
+
+                x = LEFT_MARGIN
+
+                y += row_height + GAP_Y
+
+                row_height = 0
+
+            # Overflow check
+            if y + photo_h > A4_HEIGHT - BOTTOM_MARGIN:
+
+                overflow = True
+
+                break
+
+            # Border
+            draw.rectangle(
+                (
+                x-3,
+                y-3,
+                x+photo_w+3,
+                y+photo_h+3
+                ),
+                outline="black",
+                width=2
+                )
+
+            # Paste image
+            canvas.paste(
+                tile,
+                (
+                    x,
+                    y
+                )
+            )
+
+            x += photo_w + GAP_X
+
+            row_height = max(
+                row_height,
+                photo_h
+            )
+
+            total_placed += 1
+
+        if overflow:
+
             break
-
-        draw.rectangle(
-            (
-                x - BORDER,
-                y - BORDER,
-                x + PHOTO_W + BORDER,
-                y + PHOTO_H + BORDER
-            ),
-            outline="black",
-            width=BORDER
-        )
-
-        canvas.paste(
-            photo,
-            (x, y)
-        )
-
-        current_col += 1
-
-        if (
-            current_col
-            >= photos_per_row
-        ):
-
-            current_col = 0
-
-            x = start_x
-
-            y += (
-                PHOTO_H
-                + GAP_Y
-            )
-
-        else:
-
-            x += (
-                PHOTO_W
-                + GAP_X
-            )
 
     return canvas
 
 
-def create_preview(
-    sheet
-):
+# ==========================================
+# PREVIEW
+# ==========================================
+
+def create_preview(sheet):
 
     preview = sheet.copy()
 
     preview.thumbnail(
         (
-            900,
-            1200
+            1000,
+            1400
         ),
         Image.LANCZOS
     )
 
     return preview
+
+
+# ==========================================
+# CAPACITY CHECK
+# ==========================================
+
+def get_max_capacity(photo_data):
+
+    count = 0
+
+    x = LEFT_MARGIN
+    y = TOP_MARGIN
+
+    row_height = 0
+
+    for item in photo_data:
+
+        width_px = mm_to_pixels(
+            item["width_mm"]
+        )
+
+        height_px = mm_to_pixels(
+            item["height_mm"]
+        )
+
+        copies = item["copies"]
+
+        for _ in range(copies):
+
+            if x + width_px > A4_WIDTH - RIGHT_MARGIN:
+
+                x = LEFT_MARGIN
+
+                y += row_height + GAP_Y
+
+                row_height = 0
+
+            if y + height_px > A4_HEIGHT - BOTTOM_MARGIN:
+
+                return count
+
+            x += width_px + GAP_X
+
+            row_height = max(
+                row_height,
+                height_px
+            )
+
+            count += 1
+
+    return count
