@@ -1,8 +1,10 @@
 streamlit
-pandas
-Pillow
 streamlit-cropper
-rembg
-opencv-python-headless
+pillow
 numpy
+pandas
+opencv-python-headless
+rembg
 onnxruntime
+scipy
+scikit-image
